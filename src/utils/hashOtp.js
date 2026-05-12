@@ -4,7 +4,7 @@ const hashOtp = (otp) => {
 
     return crypto
         .createHash("sha256")
-        .update(otp)
+        .update(otp.toString())
         .digest("hex");
 };
 

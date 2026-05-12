@@ -31,7 +31,7 @@ const sendOtp = asyncHandler(
 async (req, res) => {
 
     const { phone } = req.body;
-    console.log(phone.length)
+    // console.log(phone.le)
 
     // if(phone.length < 10 || length.phone > 15){
 
