@@ -1,6 +1,11 @@
 import express from 'express';
 
-const app=express();
+const app = express();
 
+app.use(express.json());
 
-export {app};
+app.get("/", (req, res) => {
+    res.send("Backend Running");
+});
+
+export { app };
