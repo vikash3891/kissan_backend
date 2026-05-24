@@ -5,6 +5,7 @@ const router = express.Router();
 const {
   register,
   login,
+  profile,
 } = require("../controllers/authController");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -16,12 +17,7 @@ router.post("/login", login);
 router.get(
   "/profile",
   authMiddleware,
-  (req, res) => {
-    res.status(200).json({
-      message: "Protected route accessed",
-      user: req.user,
-    });
-  }
+  profile
 );
 
 module.exports = router;
