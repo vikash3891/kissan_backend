@@ -13,6 +13,10 @@ from "./routes/category.routes.js";
 import bannerRoutes from "./routes/banner.routes.js";
 import homeRoutes from "./routes/home.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
+import orderRoutes
+from "./routes/order.routes.js";
+import addressRoutes
+from "./routes/address.routes.js";
 const app = express();
 
 app.use(cors());
@@ -47,4 +51,12 @@ app.use(
     "/api/cart",
     cartRoutes
 );
+app.use(
+    "/api/address",
+    addressRoutes
+);
+app.use(
+    "/api/orders",
+    orderRoutes
+)
 export default app;

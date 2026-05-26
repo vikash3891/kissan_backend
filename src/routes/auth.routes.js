@@ -23,7 +23,7 @@ router.post(
     "/verify-otp",
     verifyOtp
 );
-
+    
 router.post(
     "/refresh-token",
     refreshAccessToken
