@@ -8,6 +8,9 @@ from "../utils/ApiResponse.js";
 
 import { asyncHandler }
 from "../utils/asyncHandler.js";
+import { uploadOnCloudinary }
+from "../utils/cloudinary.js";
+import fs from "fs";
 
 
 
@@ -20,12 +23,49 @@ async (req, res) => {
 
     const {
 
-        name,
-        image_url
+        name
+        
 
     } = req.body;
 
+    // ===============================
+    // IMAGE UPLOAD
+    // ===============================
 
+    let image_url = null;
+
+    const imageLocalPath =
+    req.file?.path;
+
+
+
+    if (imageLocalPath) {
+
+        const uploadedImage =
+        await uploadOnCloudinary(
+            imageLocalPath
+        );
+
+
+
+        if (!uploadedImage) {
+
+            throw new ApiError(
+                500,
+                "Image upload failed"
+            );
+        }
+
+
+
+        image_url =
+        uploadedImage.secure_url;
+
+
+
+        // DELETE LOCAL FILE
+        fs.unlinkSync(imageLocalPath);
+    }
 
     if (!name) {
 
@@ -145,14 +185,91 @@ async (req, res) => {
 
     const { id } = req.params;
 
-    const {
-
-        name,
-        image_url
-
-    } = req.body;
+    const { name } = req.body;
 
 
+
+    // ===============================
+    // CHECK CATEGORY EXISTS
+    // ===============================
+
+    const existingCategory =
+    await pool.query(
+
+        `
+        SELECT *
+
+        FROM categories
+
+        WHERE id = $1
+        `,
+
+        [id]
+    );
+
+
+
+    if (existingCategory.rows.length === 0) {
+
+        throw new ApiError(
+            404,
+            "Category not found"
+        );
+    }
+
+
+
+    // ===============================
+    // DEFAULT OLD IMAGE
+    // ===============================
+
+    let imageUrl =
+    existingCategory.rows[0].image_url;
+
+
+
+    // ===============================
+    // IMAGE UPLOAD
+    // ===============================
+
+    const imageLocalPath =
+    req.file?.path;
+
+
+
+    if (imageLocalPath) {
+
+        const uploadedImage =
+        await uploadOnCloudinary(
+            imageLocalPath
+        );
+
+
+
+        if (!uploadedImage) {
+
+            throw new ApiError(
+                500,
+                "Image upload failed"
+            );
+        }
+
+
+
+        imageUrl =
+        uploadedImage.secure_url;
+
+
+
+        // DELETE LOCAL FILE
+        fs.unlinkSync(imageLocalPath);
+    }
+
+
+
+    // ===============================
+    // UPDATE CATEGORY
+    // ===============================
 
     const result =
     await pool.query(
@@ -173,20 +290,10 @@ async (req, res) => {
         [
 
             name,
-            image_url,
+            imageUrl,
             id
         ]
     );
-
-
-
-    if (result.rows.length === 0) {
-
-        throw new ApiError(
-            404,
-            "Category not found"
-        );
-    }
 
 
 

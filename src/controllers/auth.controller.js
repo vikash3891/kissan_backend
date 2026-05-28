@@ -31,15 +31,20 @@ const sendOtp = asyncHandler(
 async (req, res) => {
 
     const { phone } = req.body;
+    console.log(phone.length);
+    // if phone.length < 10 || phone.length > 15 {
+
+    //     throw new ApiError( 
+
     // console.log(phone.le)
 
-    // if(phone.length < 10 || length.phone > 15){
+    if(phone.length < 10 || phone.length > 11){
 
-    //     throw new ApiError(
-    //         400,
-    //         "Phone no. length Must be between 10 and 15 digits"
-    //     );
-    // }
+        throw new ApiError(
+            400,
+            "Phone no. length Must be between 10 and 15 digits"
+        );
+    }
 
     if (!phone) {
 

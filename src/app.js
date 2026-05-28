@@ -17,6 +17,11 @@ import orderRoutes
 from "./routes/order.routes.js";
 import addressRoutes
 from "./routes/address.routes.js";
+import wishlistRoutes
+from "./routes/wishlist.routes.js";
+
+import reviewRoutes
+from "./routes/reviews.routes.js";
 const app = express();
 
 app.use(cors());
@@ -59,4 +64,13 @@ app.use(
     "/api/orders",
     orderRoutes
 )
+app.use(
+    "/api/wishlist",
+    wishlistRoutes
+);
+
+app.use(
+    "/api/reviews",
+    reviewRoutes
+);
 export default app;

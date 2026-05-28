@@ -39,6 +39,7 @@ router.put(
     "/:id",
     verifyJWT,
     verifyAdmin,
+    upload.single("image"),
     updateProduct
 );
 

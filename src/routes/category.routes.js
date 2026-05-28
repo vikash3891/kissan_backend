@@ -20,6 +20,8 @@ from "../middlewares/auth.middleware.js";
 
 import { verifyAdmin }
 from "../middlewares/admin.middleware.js";
+import { upload }
+from "../middlewares/multer.middleware.js";
 
 const router = express.Router();
 
@@ -30,6 +32,7 @@ router.post(
     "/",
     verifyJWT,
     verifyAdmin,
+    upload.single("image"),
     createCategory
 );
 
@@ -37,6 +40,7 @@ router.put(
     "/:id",
     verifyJWT,
     verifyAdmin,
+    upload.single("image"),
     updateCategory
 );
 
