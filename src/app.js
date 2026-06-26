@@ -19,7 +19,8 @@ import addressRoutes
 from "./routes/address.routes.js";
 import wishlistRoutes
 from "./routes/wishlist.routes.js";
-
+import couponRoutes 
+from "./routes/coupon.routes.js";
 import reviewRoutes
 from "./routes/reviews.routes.js";
 const app = express();
@@ -73,4 +74,8 @@ app.use(
     "/api/reviews",
     reviewRoutes
 );
+app.use(
+    "/api/coupons",
+    couponRoutes
+)
 export default app;
