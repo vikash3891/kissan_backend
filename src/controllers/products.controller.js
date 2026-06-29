@@ -5,58 +5,62 @@ import fs from "fs";
 import pool from "../db/index.js";
 
 import { ApiError }
-from "../utils/ApiError.js";
+    from "../utils/ApiError.js";
 
 import { ApiResponse }
-from "../utils/ApiResponse.js";
+    from "../utils/ApiResponse.js";
 
 import { asyncHandler }
-from "../utils/asyncHandler.js";
+    from "../utils/asyncHandler.js";
 
 import { uploadOnCloudinary }
-from "../utils/cloudinary.js";
-
+    from "../utils/cloudinary.js";
+import { PRODUCT_SELECT } from "../utils/productQuery.js";
 
 
 // ===============================
 // CREATE PRODUCT
 // ===============================
 
-const createProduct = asyncHandler(
-async (req, res) => {
+const createProduct = asyncHandler(async (req, res) => {
 
     const {
-
         name,
         description,
         price,
         discount_price,
         stock,
-
-    
-        category,
+        category_id,
         brand,
         unit
-
     } = req.body;
 
-
-    console.log(req.body)
-
-
-    // ===============================
-    // VALIDATION
-    // ===============================
-
-    if (!name || !price) {
-
+    if (!name || !price || !category_id) {
         throw new ApiError(
             400,
-            "Name and price are required"
+            "Name, Price and Category are required"
         );
     }
 
+    // ===============================
+    // CHECK CATEGORY EXISTS
+    // ===============================
 
+    const categoryResult = await pool.query(
+        `
+        SELECT *
+        FROM categories
+        WHERE id = $1
+        `,
+        [category_id]
+    );
+
+    if (categoryResult.rows.length === 0) {
+        throw new ApiError(
+            404,
+            "Category not found"
+        );
+    }
 
     // ===============================
     // IMAGE UPLOAD
@@ -64,19 +68,12 @@ async (req, res) => {
 
     let image_url = null;
 
-    const imageLocalPath =
-    req.file?.path;
-
-
+    const imageLocalPath = req.file?.path;
 
     if (imageLocalPath) {
 
         const uploadedImage =
-        await uploadOnCloudinary(
-            imageLocalPath
-        );
-
-
+            await uploadOnCloudinary(imageLocalPath);
 
         if (!uploadedImage) {
 
@@ -86,65 +83,66 @@ async (req, res) => {
             );
         }
 
+        image_url = uploadedImage.secure_url;
 
-
-        image_url =
-        uploadedImage.secure_url;
-
-
-
-        // DELETE LOCAL FILE
         fs.unlinkSync(imageLocalPath);
     }
-
-
 
     // ===============================
     // INSERT PRODUCT
     // ===============================
 
-    const result = await pool.query(
+    const insertResult = await pool.query(
 
         `
         INSERT INTO products
         (
-
             name,
             description,
             price,
             discount_price,
             stock,
             image_url,
-            category,
+            category_id,
             brand,
             unit
-
         )
 
         VALUES
         (
-            $1,$2,$3,$4,$5,
-            $6,$7,$8,$9
+            $1,$2,$3,$4,$5,$6,$7,$8,$9
         )
 
-        RETURNING *
+        RETURNING id
         `,
 
         [
-
             name,
             description,
             price,
             discount_price,
             stock,
             image_url,
-            category,
+            category_id,
             brand,
             unit
         ]
     );
 
+    // ===============================
+    // FETCH COMPLETE PRODUCT
+    // ===============================
 
+    const product = await pool.query(
+
+        `
+        ${PRODUCT_SELECT}
+
+        WHERE p.id = $1
+        `,
+
+        [insertResult.rows[0].id]
+    );
 
     return res.status(201).json(
 
@@ -152,278 +150,193 @@ async (req, res) => {
 
             201,
 
-            result.rows[0],
+            product.rows[0],
 
             "Product created successfully"
         )
     );
+
 });
 
 
 
-
-// ===============================
-// GET ALL PRODUCTS
-// ===============================
-
-// const getAllProducts = asyncHandler(
-// async (_, res) => {
-
-//     const result = await pool.query(
-
-//         `
-//         SELECT *
-
-//         FROM products
-
-//         ORDER BY created_at DESC
-//         `
-//     );
-
-
-
-//     return res.status(200).json(
-
-//         new ApiResponse(
-
-//             200,
-
-//             result.rows,
-
-//             "Products fetched successfully"
-//         )
-//     );
-// });
-
-
-const getAllProducts = asyncHandler(
-async (req, res) => {
-
-    // =====================================
-    // QUERY PARAMS
-    // =====================================
+const getAllProducts = asyncHandler(async (req, res) => {
 
     const {
-
         search,
-
-        category,
-
+        category_id,
         minPrice,
-
         maxPrice,
-
         sort,
-
         page = 1,
-
         limit = 10
-
     } = req.query;
 
+    const offset = (page - 1) * limit;
 
-
-    // =====================================
-    // PAGINATION
-    // =====================================
-
-    const offset =
-
-        (page - 1)
-        * limit;
-
-
-
-    // =====================================
-    // BASE QUERY
-    // =====================================
-
-    let query =
-
-        `
-        SELECT *
-
-        FROM products
-
+    let query = `
+        ${PRODUCT_SELECT}
         WHERE 1=1
-        `;
-
-
+    `;
 
     const values = [];
-
     let index = 1;
 
-
-
-    // =====================================
+    // ===============================
     // SEARCH
-    // =====================================
+    // ===============================
 
     if (search) {
 
-        query +=
-
-            `
-            AND LOWER(name)
+        query += `
+            AND LOWER(p.name)
             LIKE LOWER($${index})
-            `;
-
-
+        `;
 
         values.push(`%${search}%`);
-
         index++;
     }
 
-
-
-    // =====================================
+    // ===============================
     // CATEGORY FILTER
-    // =====================================
+    // ===============================
 
-    if (category) {
+    if (category_id) {
 
-        query +=
+        query += `
+            AND p.category_id = $${index}
+        `;
 
-            `
-            AND LOWER(category)
-            = LOWER($${index})
-            `;
-
-
-
-        values.push(category);
-
+        values.push(category_id);
         index++;
     }
 
-
-
-    // =====================================
+    // ===============================
     // MIN PRICE
-    // =====================================
+    // ===============================
 
     if (minPrice) {
 
-        query +=
-
-            `
-            AND price >= $${index}
-            `;
-
-
+        query += `
+            AND p.price >= $${index}
+        `;
 
         values.push(minPrice);
-
         index++;
     }
 
-
-
-    // =====================================
+    // ===============================
     // MAX PRICE
-    // =====================================
+    // ===============================
 
     if (maxPrice) {
 
-        query +=
-
-            `
-            AND price <= $${index}
-            `;
-
-
+        query += `
+            AND p.price <= $${index}
+        `;
 
         values.push(maxPrice);
-
         index++;
     }
 
-
-
-    // =====================================
+    // ===============================
     // SORTING
-    // =====================================
+    // ===============================
 
-    if (sort === "low_to_high") {
+    switch (sort) {
 
-        query +=
+        case "price_asc":
 
-            `
-            ORDER BY price ASC
-            `;
+            query += ` ORDER BY p.price ASC `;
+            break;
+
+        case "price_desc":
+
+            query += ` ORDER BY p.price DESC `;
+            break;
+
+        case "oldest":
+
+            query += ` ORDER BY p.created_at ASC `;
+            break;
+
+        default:
+
+            query += ` ORDER BY p.created_at DESC `;
     }
 
-    else if (
-        sort === "high_to_low"
-    ) {
-
-        query +=
-
-            `
-            ORDER BY price DESC
-            `;
-    }
-
-    else {
-
-        query +=
-
-            `
-            ORDER BY created_at DESC
-            `;
-    }
-
-
-
-    // =====================================
+    // ===============================
     // PAGINATION
-    // =====================================
+    // ===============================
 
-    query +=
-
-        `
+    query += `
         LIMIT $${index}
         OFFSET $${index + 1}
-        `;
-
-
+    `;
 
     values.push(limit);
-
     values.push(offset);
 
+    const products = await pool.query(query, values);
 
+    // ===============================
+    // TOTAL PRODUCTS
+    // ===============================
 
-    // =====================================
-    // EXECUTE QUERY
-    // =====================================
-
-    const result =
-    await pool.query(
-
-        query,
-        values
-    );
-
-
-
-    // =====================================
-    // TOTAL PRODUCTS COUNT
-    // =====================================
-
-    const totalResult =
-    await pool.query(
-
-        `
+    let countQuery = `
         SELECT COUNT(*)
+        FROM products p
+        WHERE 1=1
+    `;
 
-        FROM products
-        `
+    const countValues = [];
+    let countIndex = 1;
+
+    if (search) {
+
+        countQuery += `
+            AND LOWER(p.name)
+            LIKE LOWER($${countIndex})
+        `;
+
+        countValues.push(`%${search}%`);
+        countIndex++;
+    }
+
+    if (category_id) {
+
+        countQuery += `
+            AND p.category_id = $${countIndex}
+        `;
+
+        countValues.push(category_id);
+        countIndex++;
+    }
+
+    if (minPrice) {
+
+        countQuery += `
+            AND p.price >= $${countIndex}
+        `;
+
+        countValues.push(minPrice);
+        countIndex++;
+    }
+
+    if (maxPrice) {
+
+        countQuery += `
+            AND p.price <= $${countIndex}
+        `;
+
+        countValues.push(maxPrice);
+        countIndex++;
+    }
+
+    const total = await pool.query(
+        countQuery,
+        countValues
     );
-
-
 
     return res.status(200).json(
 
@@ -433,67 +346,57 @@ async (req, res) => {
 
             {
 
-                totalProducts:
-                Number(
-                    totalResult.rows[0].count
+                totalProducts: Number(total.rows[0].count),
+
+                currentPage: Number(page),
+
+                totalPages: Math.ceil(
+                    total.rows[0].count / limit
                 ),
 
-                currentPage:
-                Number(page),
+                products: products.rows
 
-                totalPages:
-                Math.ceil(
-
-                    totalResult.rows[0].count
-                    / limit
-                ),
-
-                products:
-                result.rows
             },
 
             "Products fetched successfully"
+
         )
+
     );
+
 });
-
-
 
 // ===============================
 // GET SINGLE PRODUCT
 // ===============================
 
-const getSingleProduct = asyncHandler(
-async (req, res) => {
+const getSingleProduct = asyncHandler(async (req, res) => {
 
     const { id } = req.params;
-
-
 
     const result = await pool.query(
 
         `
-        SELECT *
+        ${PRODUCT_SELECT}
 
-        FROM products
-
-        WHERE id = $1
+        WHERE p.id = $1
         `,
 
         [id]
+
     );
-
-
 
     if (result.rows.length === 0) {
 
         throw new ApiError(
+
             404,
+
             "Product not found"
+
         );
+
     }
-
-
 
     return res.status(200).json(
 
@@ -504,10 +407,12 @@ async (req, res) => {
             result.rows[0],
 
             "Product fetched successfully"
-        )
-    );
-});
 
+        )
+
+    );
+
+});
 
 
 
@@ -515,45 +420,22 @@ async (req, res) => {
 // UPDATE PRODUCT
 // ===============================
 
-const updateProduct = asyncHandler(
-async (req, res) => {
+const updateProduct = asyncHandler(async (req, res) => {
 
     const { id } = req.params;
 
-    const {
-
-        name,
-        description,
-        price,
-        discount_price,
-        stock,
-        category,
-        brand,
-        unit
-
-    } = req.body;
-
-
-
     // ===============================
-    // CHECK PRODUCT EXISTS
+    // GET EXISTING PRODUCT
     // ===============================
 
-    const existingProduct =
-    await pool.query(
-
+    const existingProduct = await pool.query(
         `
         SELECT *
-
         FROM products
-
         WHERE id = $1
         `,
-
         [id]
     );
-
-
 
     if (existingProduct.rows.length === 0) {
 
@@ -563,30 +445,61 @@ async (req, res) => {
         );
     }
 
-
-
-    let image_url =
-    existingProduct.rows[0].image_url;
-
-
+    const product = existingProduct.rows[0];
 
     // ===============================
-    // NEW IMAGE UPLOAD
+    // REQUEST BODY
     // ===============================
 
-    const imageLocalPath =
-    req.file?.path;
+    const {
 
+        name,
+        description,
+        price,
+        discount_price,
+        stock,
+        category_id,
+        brand,
+        unit
 
+    } = req.body;
+
+    // ===============================
+    // VALIDATE CATEGORY
+    // ===============================
+
+    if (category_id) {
+
+        const category = await pool.query(
+            `
+            SELECT id
+            FROM categories
+            WHERE id = $1
+            `,
+            [category_id]
+        );
+
+        if (category.rows.length === 0) {
+
+            throw new ApiError(
+                404,
+                "Category not found"
+            );
+        }
+    }
+
+    // ===============================
+    // IMAGE UPLOAD
+    // ===============================
+
+    let image_url = product.image_url;
+
+    const imageLocalPath = req.file?.path;
 
     if (imageLocalPath) {
 
         const uploadedImage =
-        await uploadOnCloudinary(
-            imageLocalPath
-        );
-
-
+            await uploadOnCloudinary(imageLocalPath);
 
         if (!uploadedImage) {
 
@@ -596,61 +509,77 @@ async (req, res) => {
             );
         }
 
+        image_url = uploadedImage.secure_url;
 
-
-        image_url =
-        uploadedImage.secure_url;
-
-
-
-        // DELETE LOCAL FILE
         fs.unlinkSync(imageLocalPath);
     }
-
-
 
     // ===============================
     // UPDATE PRODUCT
     // ===============================
 
-    const result = await pool.query(
+    await pool.query(
 
         `
         UPDATE products
 
         SET
 
-        name = $1,
-        description = $2,
-        price = $3,
-        discount_price = $4,
-        stock = $5,
-        image_url = $6,
-        category = $7,
-        brand = $8,
-        unit = $9
+            name = $1,
+            description = $2,
+            price = $3,
+            discount_price = $4,
+            stock = $5,
+            image_url = $6,
+            category_id = $7,
+            brand = $8,
+            unit = $9
 
         WHERE id = $10
-
-        RETURNING *
         `,
 
         [
 
-            name,
-            description,
-            price,
-            discount_price,
-            stock,
+            name ?? product.name,
+
+            description ?? product.description,
+
+            price ?? product.price,
+
+            discount_price ?? product.discount_price,
+
+            stock ?? product.stock,
+
             image_url,
-            category,
-            brand,
-            unit,
+
+            category_id ?? product.category_id,
+
+            brand ?? product.brand,
+
+            unit ?? product.unit,
+
             id
+
         ]
+
     );
 
+    // ===============================
+    // FETCH UPDATED PRODUCT
+    // ===============================
 
+    const updatedProduct =
+    await pool.query(
+
+        `
+        ${PRODUCT_SELECT}
+
+        WHERE p.id = $1
+        `,
+
+        [id]
+
+    );
 
     return res.status(200).json(
 
@@ -658,43 +587,37 @@ async (req, res) => {
 
             200,
 
-            result.rows[0],
+            updatedProduct.rows[0],
 
             "Product updated successfully"
+
         )
+
     );
+
 });
-
-
 
 
 // ===============================
 // DELETE PRODUCT
 // ===============================
 
-const deleteProduct = asyncHandler(
-async (req, res) => {
+const deleteProduct = asyncHandler(async (req, res) => {
 
     const { id } = req.params;
 
-
-
-    const result = await pool.query(
+    const product = await pool.query(
 
         `
-        DELETE FROM products
+        ${PRODUCT_SELECT}
 
-        WHERE id = $1
-
-        RETURNING *
+        WHERE p.id = $1
         `,
 
         [id]
     );
 
-
-
-    if (result.rows.length === 0) {
+    if (product.rows.length === 0) {
 
         throw new ApiError(
             404,
@@ -702,7 +625,15 @@ async (req, res) => {
         );
     }
 
+    await pool.query(
 
+        `
+        DELETE FROM products
+        WHERE id = $1
+        `,
+
+        [id]
+    );
 
     return res.status(200).json(
 
@@ -710,11 +641,12 @@ async (req, res) => {
 
             200,
 
-            result.rows[0],
+            product.rows[0],
 
             "Product deleted successfully"
         )
     );
+
 });
 
 
