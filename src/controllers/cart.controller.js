@@ -514,25 +514,23 @@ const removeCartItem = asyncHandler(async (req, res) => {
 // CLEAR CART
 // =====================================
 
-const clearCart = asyncHandler(
-async (req, res) => {
+const clearCart = asyncHandler(async (req, res) => {
 
     const userId = req.user.id;
 
-
-
-    await pool.query(
+    const result = await pool.query(
 
         `
         DELETE FROM cart
 
         WHERE user_id = $1
+
+        RETURNING *
         `,
 
         [userId]
+
     );
-
-
 
     return res.status(200).json(
 
@@ -540,11 +538,18 @@ async (req, res) => {
 
             200,
 
-            null,
+            {
+
+                items_removed: result.rows.length
+
+            },
 
             "Cart cleared successfully"
+
         )
+
     );
+
 });
 
 
