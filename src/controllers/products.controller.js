@@ -649,6 +649,117 @@ const deleteProduct = asyncHandler(async (req, res) => {
 
 });
 
+const updateStock = asyncHandler(async (req, res) => {
+
+    const { id } = req.params;
+
+    const { stock } = req.body;
+
+    if (stock === undefined) {
+
+        throw new ApiError(
+            400,
+            "Stock is required"
+        );
+    }
+
+    if (Number(stock) < 0) {
+
+        throw new ApiError(
+            400,
+            "Stock cannot be negative"
+        );
+    }
+
+    const result = await pool.query(
+
+        `
+        UPDATE products
+
+        SET
+
+            stock = $1,
+
+            is_available = CASE
+
+                WHEN $1 <= 0
+                THEN FALSE
+
+                ELSE TRUE
+
+            END
+
+        WHERE id = $2
+
+        RETURNING id
+        `,
+
+        [
+            Number(stock),
+            id
+        ]
+    );
+
+    if (result.rows.length === 0) {
+
+        throw new ApiError(
+            404,
+            "Product not found"
+        );
+    }
+
+    const product = await pool.query(
+
+        `
+        ${PRODUCT_SELECT}
+
+        WHERE p.id = $1
+        `,
+
+        [id]
+    );
+
+    return res.status(200).json(
+
+        new ApiResponse(
+
+            200,
+
+            product.rows[0],
+
+            "Stock updated successfully"
+
+        )
+
+    );
+
+});
+const getInventory = asyncHandler(async (req, res) => {
+
+    const result = await pool.query(
+
+        `
+        ${PRODUCT_SELECT}
+
+        ORDER BY p.stock ASC
+        `
+    );
+
+    return res.status(200).json(
+
+        new ApiResponse(
+
+            200,
+
+            result.rows,
+
+            "Inventory fetched successfully"
+
+        )
+
+    );
+
+});
 
 
 export {
@@ -661,5 +772,8 @@ export {
 
     updateProduct,
 
-    deleteProduct
+    deleteProduct,
+    updateStock,
+    getInventory,
+
 };

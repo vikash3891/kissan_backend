@@ -11,7 +11,9 @@ import {
 
     updateProduct,
 
-    deleteProduct
+    deleteProduct,
+    updateStock,
+    getInventory
 
 }
 from "../controllers/products.controller.js";
@@ -48,6 +50,24 @@ router.delete(
     verifyJWT,
     verifyAdmin,
     deleteProduct
+);
+
+router.patch(
+    "/:id/stock",
+    verifyJWT,
+    verifyAdmin,
+    updateStock
+); 
+router.get(
+
+    "/inventory",
+
+    verifyJWT,
+
+    verifyAdmin,
+
+    getInventory
+
 );
 
 

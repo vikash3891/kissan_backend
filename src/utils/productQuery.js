@@ -1,3 +1,4 @@
+
 export const PRODUCT_SELECT = `
 SELECT
 
@@ -12,6 +13,18 @@ SELECT
     p.unit,
     p.is_available,
     p.created_at,
+
+    CASE
+
+        WHEN p.stock <= 0
+        THEN 'Out of Stock'
+
+        WHEN p.stock <= 10
+        THEN 'Low Stock'
+
+        ELSE 'In Stock'
+
+    END AS stock_status,
 
     json_build_object(
 
