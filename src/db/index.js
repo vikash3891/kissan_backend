@@ -1,6 +1,7 @@
-import pkg from "pg";
+import pg from "pg";
 
-const { Pool } = pkg;
+const { Pool } = pg;
+
 
 const pool = new Pool({
 
