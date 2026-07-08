@@ -124,8 +124,8 @@ const getAddresses=asyncHandler(async(req,res)=>{
     return res.status(200).json(
         new ApiResponse(
             200,
-            "Addresses retrieved successfully",
-            result.rows
+            result.rows,
+            "Addresses retrieved successfully"
         )
     )
 
@@ -194,8 +194,8 @@ const updateAddress=asyncHandler(async(req,res)=>{
     return res.status(201).json(
         new ApiResponse(
             201,
-            "Address updated successfully",
-            result.rows[0]
+            result.rows[0],
+            "Address updated successfully"
         )
     )
     

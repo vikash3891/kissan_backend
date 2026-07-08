@@ -11,7 +11,9 @@ import {
     cancelOrder,
     getAllOrders,
     getAdminSingleOrder,
-    updateOrderStatus
+    updateOrderStatus,
+    buyNow
+
 
 }
 from "../controllers/order.controller.js";
@@ -69,6 +71,18 @@ router.patch(
     "/cancel/:id",
     verifyJWT,
     cancelOrder
+);
+
+
+
+// =====================================
+// Buy now 
+// =====================================
+
+router.post(
+    "/buy-now",
+    verifyJWT,
+    buyNow
 );
 
 // =====================================

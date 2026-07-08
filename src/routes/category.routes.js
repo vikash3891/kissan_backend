@@ -10,7 +10,12 @@ import {
 
     deleteCategory,
 
-    getProductsByCategory
+    getProductsByCategory,
+    getSingleCategory,
+    searchCategories,
+    toggleCategoryStatus,
+    getCategoryStats,
+    reorderCategories
 
 }
 from "../controllers/category.controller.js";
@@ -64,4 +69,31 @@ router.get(
     getProductsByCategory
 );
 
+
+
+
+router.get("/search", searchCategories);
+router.get("/:id", getSingleCategory);
+
+// Admin
+router.patch(
+    "/:id/status",
+    verifyJWT,
+    verifyAdmin,
+    toggleCategoryStatus
+);
+
+router.get(
+    "/admin/stats",
+    verifyJWT,
+    verifyAdmin,
+    getCategoryStats
+);
+
+router.patch(
+    "/order",
+    verifyJWT,
+    verifyAdmin,
+    reorderCategories
+);
 export default router;

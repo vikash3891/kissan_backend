@@ -88,9 +88,9 @@ async (req, res) => {
     );
 
     return res.status(200).json(
-
         new ApiResponse(
             200,
+            null,
             "OTP sent successfully"
         )
     );
@@ -203,18 +203,14 @@ async (req, res) => {
 
 
     return res.status(200).json(
-
         new ApiResponse(
-
             200,
-
-            "Login successful",
-
             {
                 user: userData,
                 accessToken,
                 refreshToken
-            }
+            },
+            "Login successful"
         )
     );
 });
@@ -293,16 +289,12 @@ asyncHandler(async (req, res) => {
 
 
     return res.status(200).json(
-
         new ApiResponse(
-
             200,
-
-            "Access token refreshed",
-
             {
                 accessToken
-            }
+            },
+            "Access token refreshed"
         )
     );
 });

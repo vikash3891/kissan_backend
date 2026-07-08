@@ -113,19 +113,33 @@ async (req, res) => {
 
         `
         SELECT
-
-            wishlist.id,
-
-            products.*
-
-        FROM wishlist
-
-        JOIN products
-        ON wishlist.product_id = products.id
-
-        WHERE wishlist.user_id = $1
-
-        ORDER BY wishlist.created_at DESC
+            w.id AS wishlist_entry_id,
+            p.id,
+            p.name,
+            p.description,
+            p.price,
+            p.discount_price,
+            p.stock,
+            p.image_url,
+            p.brand,
+            p.unit,
+            p.is_available,
+            p.created_at,
+            CASE
+                WHEN p.stock <= 0 THEN 'Out of Stock'
+                WHEN p.stock <= 10 THEN 'Low Stock'
+                ELSE 'In Stock'
+            END AS stock_status,
+            json_build_object(
+                'id', c.id,
+                'name', c.name,
+                'image_url', c.image_url
+            ) AS category
+        FROM wishlist w
+        JOIN products p ON w.product_id = p.id
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE w.user_id = $1
+        ORDER BY w.created_at DESC
         `,
 
         [userId]
