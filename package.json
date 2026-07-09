@@ -6,8 +6,9 @@
   
   
   "scripts": {
-    "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
-    "test": "echo\"no test required \" && exit 0"
+   "start": "node -r dotenv/config src/index.js",
+  "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
+  "test": "echo \"no test required\" && exit 0"
   },
   "keywords": [],
   "author": "",
