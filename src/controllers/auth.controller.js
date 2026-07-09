@@ -54,7 +54,9 @@ async (req, res) => {
         );
     }
 
-    const otp = generateOtp();
+    // const otp = generateOtp();
+    const otp = "1234";
+
 
     console.log(
         `OTP for ${phone}: ${otp}`
