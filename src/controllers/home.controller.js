@@ -6,6 +6,7 @@ from "../utils/ApiResponse.js";
 import { asyncHandler }
 from "../utils/asyncHandler.js";
 
+import { PRODUCT_SELECT } from "../utils/productQuery.js";
 
 
 const getHomeData = asyncHandler(
@@ -57,13 +58,11 @@ async (_, res) => {
     await pool.query(
 
         `
-        SELECT *
+        ${PRODUCT_SELECT}
 
-        FROM products
+        WHERE p.is_available = true
 
-        WHERE is_available = true
-
-        ORDER BY created_at DESC
+        ORDER BY p.created_at DESC
 
         LIMIT 10
         `
@@ -79,13 +78,11 @@ async (_, res) => {
     await pool.query(
 
         `
-        SELECT *
+        ${PRODUCT_SELECT}
 
-        FROM products
+        WHERE p.discount_price IS NOT NULL
 
-        WHERE discount_price IS NOT NULL
-
-        ORDER BY created_at DESC
+        ORDER BY p.created_at DESC
 
         LIMIT 10
         `
