@@ -12,11 +12,12 @@ const client = new Client({
 async function check() {
   await client.connect();
   try {
-    const res = await client.query(`
-      SELECT count(*) FROM products 
-      WHERE price = 0 OR selling_price = 0 OR discount_price = 0
+    const productSchema = await client.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'products'
     `);
-    console.log('Zero price products:', res.rows[0].count);
+    console.log('Products columns:', productSchema.rows);
     
     // Check constraints
     const fks = await client.query(`
@@ -34,12 +35,6 @@ async function check() {
     `);
     console.log('Tables dependent on products:', fks.rows);
 
-    const productSchema = await client.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'products'
-    `);
-    console.log('Products columns:', productSchema.rows);
   } catch (err) {
     console.error('Error querying:', err);
   } finally {

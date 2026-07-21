@@ -1,0 +1,101 @@
+[
+  {
+    "id": 2,
+    "name": "Grains",
+    "image_url": "https://res.cloudinary.com/dxpes5epi/image/upload/v1779959194/mmuyrtdlcrlsxb5zmqr1.jpg",
+    "created_at": "2026-05-28T09:06:35.934Z",
+    "is_active": true,
+    "sort_order": 0,
+    "description": "Healthy grains and cereals"
+  },
+  {
+    "id": 1,
+    "name": "Fruits",
+    "image_url": "https://res.cloudinary.com/dxpes5epi/image/upload/v1783075911/gsw0xtl18ar6iaa37otp.webp",
+    "created_at": "2026-05-13T10:46:57.132Z",
+    "is_active": true,
+    "sort_order": 0,
+    "description": "Fresh natural organic fruits"
+  },
+  {
+    "id": 3,
+    "name": "Vegetables",
+    "image_url": "https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?q=80&w=400",
+    "created_at": "2026-07-16T12:39:34.960Z",
+    "is_active": true,
+    "sort_order": 2,
+    "description": "Farm fresh vegetables daily."
+  },
+  {
+    "id": 4,
+    "name": "Grains & Rice",
+    "image_url": "https://images.unsplash.com/photo-1586201375761-83865001e8ac?q=80&w=400",
+    "created_at": "2026-07-16T12:39:34.960Z",
+    "is_active": true,
+    "sort_order": 3,
+    "description": "Premium quality grains and rice."
+  },
+  {
+    "id": 5,
+    "name": "Pulses & Dal",
+    "image_url": "https://images.unsplash.com/photo-1587317376043-4dcbf07c6f37?q=80&w=400",
+    "created_at": "2026-07-16T12:39:34.960Z",
+    "is_active": true,
+    "sort_order": 4,
+    "description": "Protein-rich pulses and dals."
+  },
+  {
+    "id": 6,
+    "name": "Dairy & Milk",
+    "image_url": "https://images.unsplash.com/photo-1628088062854-d1870b4553da?q=80&w=400",
+    "created_at": "2026-07-16T12:39:34.960Z",
+    "is_active": true,
+    "sort_order": 5,
+    "description": "Fresh milk, paneer, butter, and more."
+  },
+  {
+    "id": 7,
+    "name": "Bakery",
+    "image_url": "https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=400",
+    "created_at": "2026-07-16T12:39:34.960Z",
+    "is_active": true,
+    "sort_order": 6,
+    "description": "Freshly baked breads and cakes."
+  },
+  {
+    "id": 8,
+    "name": "Beverages",
+    "image_url": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=400",
+    "created_at": "2026-07-16T12:39:34.960Z",
+    "is_active": true,
+    "sort_order": 7,
+    "description": "Cold drinks, juices, and tea."
+  },
+  {
+    "id": 9,
+    "name": "Dry Fruits & Nuts",
+    "image_url": "https://images.unsplash.com/photo-1596591606975-97ee5cef3a1e?q=80&w=400",
+    "created_at": "2026-07-16T12:39:34.960Z",
+    "is_active": true,
+    "sort_order": 8,
+    "description": "Healthy and crunchy dry fruits."
+  },
+  {
+    "id": 10,
+    "name": "Spices & Masala",
+    "image_url": "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?q=80&w=400",
+    "created_at": "2026-07-16T12:39:34.960Z",
+    "is_active": true,
+    "sort_order": 9,
+    "description": "Aromatic Indian spices."
+  },
+  {
+    "id": 11,
+    "name": "Oils & Ghee",
+    "image_url": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=400",
+    "created_at": "2026-07-16T12:39:34.960Z",
+    "is_active": true,
+    "sort_order": 10,
+    "description": "Pure cooking oils and desi ghee."
+  }
+]

@@ -22,7 +22,8 @@ const router = express.Router();
 router.post(
     "/:productId",
     verifyJWT,
-    upload.any(),
+    // upload.any(),
+    upload.array("image",5),
     addReview
 );
 
@@ -41,8 +42,9 @@ router.get(
 
 router.put(
     "/:reviewId",
+
     verifyJWT,
-    upload.any(),
+    upload.array("image",5),
     updateReview
 );
 
