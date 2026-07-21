@@ -2,7 +2,42 @@
 
 import fs from "fs";
 
-import pool from "../db/index.js";
+import dbPool from "../db/index.js";
+
+const pool = {
+    ...dbPool,
+    query: async (text, params) => {
+        console.log('dbPool is:', dbPool);
+        const result = await dbPool.query(text, params);
+        if (result && result.rows) {
+            result.rows = result.rows.map(row => {
+                if (!row) return row;
+                // Clean description
+                if (row.description) {
+                    let desc = row.description;
+                    try {
+                        const trimmed = desc.trim();
+                        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+                            const decoded = JSON.parse(trimmed);
+                            desc = decoded.description || decoded.text || desc;
+                        }
+                    } catch (e) { }
+                    row.description = desc;
+                }
+                // Clean discount_price
+                if (row.discount_price !== undefined) {
+                    let dp = row.discount_price;
+                    if (dp !== null && parseFloat(dp) <= 0) {
+                        dp = null;
+                    }
+                    row.discount_price = dp;
+                }
+                return row;
+            });
+        }
+        return result;
+    }
+};
 
 import { ApiError }
     from "../utils/ApiError.js";
@@ -569,17 +604,17 @@ const updateProduct = asyncHandler(async (req, res) => {
     // ===============================
 
     const updatedProduct =
-    await pool.query(
+        await pool.query(
 
-        `
+            `
         ${PRODUCT_SELECT}
 
         WHERE p.id = $1
         `,
 
-        [id]
+            [id]
 
-    );
+        );
 
     return res.status(200).json(
 

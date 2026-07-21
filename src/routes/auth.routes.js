@@ -9,13 +9,13 @@ import {
     refreshAccessToken,
 
     getCurrentUser,
-    logoutUser
+    logoutUser,
+    getAllUsers
 
 }
-from "../controllers/auth.controller.js";
+    from "../controllers/auth.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
-
-
+import { verifyAdmin } from "../middlewares/admin.middleware.js";
 
 
 const router = express.Router();
@@ -30,7 +30,7 @@ router.post(
     "/verify-otp",
     verifyOtp
 );
-    
+
 router.post(
     "/refresh-token",
     refreshAccessToken
@@ -44,5 +44,11 @@ router.post(
     "/logout",
     verifyJWT,
     logoutUser
+);
+router.get(
+    "/users",
+    verifyJWT,
+    verifyAdmin,
+    getAllUsers
 );
 export default router;

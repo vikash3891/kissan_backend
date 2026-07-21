@@ -1,13 +1,13 @@
 import pool from "../db/index.js";
 
 import { ApiError }
-from "../utils/ApiError.js";
+    from "../utils/ApiError.js";
 
 import { ApiResponse }
-from "../utils/ApiResponse.js";
+    from "../utils/ApiResponse.js";
 
 import { asyncHandler }
-from "../utils/asyncHandler.js";
+    from "../utils/asyncHandler.js";
 
 const getCompleteOrder = async (orderId) => {
 
@@ -378,16 +378,16 @@ const placeOrder = asyncHandler(async (req, res) => {
 // =====================================
 
 const getMyOrders = asyncHandler(
-async (req, res) => {
+    async (req, res) => {
 
-    const userId = req.user.id;
+        const userId = req.user.id;
 
 
 
-    const result =
-    await pool.query(
+        const result =
+            await pool.query(
 
-        `
+                `
         SELECT *
 
         FROM orders
@@ -397,23 +397,23 @@ async (req, res) => {
         ORDER BY created_at DESC
         `,
 
-        [userId]
-    );
+                [userId]
+            );
 
 
 
-    return res.status(200).json(
+        return res.status(200).json(
 
-        new ApiResponse(
+            new ApiResponse(
 
-            200,
+                200,
 
-            result.rows,
+                result.rows,
 
-            "Orders fetched successfully"
-        )
-    );
-});
+                "Orders fetched successfully"
+            )
+        );
+    });
 
 
 
@@ -423,22 +423,22 @@ async (req, res) => {
 // =====================================
 
 const getSingleOrder = asyncHandler(
-async (req, res) => {
+    async (req, res) => {
 
-    const userId = req.user.id;
+        const userId = req.user.id;
 
-    const { id } = req.params;
+        const { id } = req.params;
 
 
 
-    // ==============================
-    // GET ORDER
-    // ==============================
+        // ==============================
+        // GET ORDER
+        // ==============================
 
-    const order =
-    await pool.query(
+        const order =
+            await pool.query(
 
-        `
+                `
         SELECT *
 
         FROM orders
@@ -447,33 +447,33 @@ async (req, res) => {
         AND user_id = $2
         `,
 
-        [
+                [
 
-            id,
-            userId
-        ]
-    );
-
-
-
-    if (order.rows.length === 0) {
-
-        throw new ApiError(
-            404,
-            "Order not found"
-        );
-    }
+                    id,
+                    userId
+                ]
+            );
 
 
 
-    // ==============================
-    // GET ORDER ITEMS
-    // ==============================
+        if (order.rows.length === 0) {
 
-    const items =
-    await pool.query(
+            throw new ApiError(
+                404,
+                "Order not found"
+            );
+        }
 
-        `
+
+
+        // ==============================
+        // GET ORDER ITEMS
+        // ==============================
+
+        const items =
+            await pool.query(
+
+                `
         SELECT
 
             order_items.id,
@@ -491,27 +491,27 @@ async (req, res) => {
         WHERE order_items.order_id = $1
         `,
 
-        [id]
-    );
+                [id]
+            );
 
 
 
-    return res.status(200).json(
+        return res.status(200).json(
 
-        new ApiResponse(
+            new ApiResponse(
 
-            200,
+                200,
 
-            {
+                {
 
-                order: order.rows[0],
-                items: items.rows
-            },
+                    order: order.rows[0],
+                    items: items.rows
+                },
 
-            "Order fetched successfully"
-        )
-    );
-});
+                "Order fetched successfully"
+            )
+        );
+    });
 
 
 
@@ -672,12 +672,12 @@ const cancelOrder = asyncHandler(async (req, res) => {
 
 
 const getAllOrders = asyncHandler(
-async (_, res) => {
+    async (_, res) => {
 
-    const result =
-    await pool.query(
+        const result =
+            await pool.query(
 
-        `
+                `
         SELECT
 
             orders.*,
@@ -691,75 +691,75 @@ async (_, res) => {
 
         ORDER BY orders.created_at DESC
         `
-    );
+            );
 
 
 
-    return res.status(200).json(
+        return res.status(200).json(
 
-        new ApiResponse(
+            new ApiResponse(
 
-            200,
+                200,
 
-            result.rows,
+                result.rows,
 
-            "All orders fetched successfully"
-        )
-    );
-});
+                "All orders fetched successfully"
+            )
+        );
+    });
 
 
 
 const updateOrderStatus = asyncHandler(
-async (req, res) => {
+    async (req, res) => {
 
-    const { id } = req.params;
+        const { id } = req.params;
 
-    const { order_status } = req.body;
-
-
-
-    const validStatuses = [
-
-        "pending",
-
-        "confirmed",
-
-        "packed",
-
-        "shipped",
-
-        "out_for_delivery",
-
-        "delivered",
-
-        "cancelled"
-    ];
+        const { order_status } = req.body;
 
 
 
-    if (
+        const validStatuses = [
 
-        !validStatuses.includes(
-            order_status
-        )
+            "pending",
 
-    ) {
+            "confirmed",
 
-        throw new ApiError(
+            "packed",
 
-            400,
+            "shipped",
 
-            "Invalid order status"
-        );
-    }
+            "out_for_delivery",
+
+            "delivered",
+
+            "cancelled"
+        ];
 
 
 
-    const result =
-    await pool.query(
+        if (
 
-        `
+            !validStatuses.includes(
+                order_status
+            )
+
+        ) {
+
+            throw new ApiError(
+
+                400,
+
+                "Invalid order status"
+            );
+        }
+
+
+
+        const result =
+            await pool.query(
+
+                `
         UPDATE orders
 
         SET order_status = $1
@@ -769,53 +769,53 @@ async (req, res) => {
         RETURNING *
         `,
 
-        [
+                [
 
-            order_status,
-            id
-        ]
-    );
+                    order_status,
+                    id
+                ]
+            );
 
 
 
-    if (result.rows.length === 0) {
+        if (result.rows.length === 0) {
 
-        throw new ApiError(
-            404,
-            "Order not found"
+            throw new ApiError(
+                404,
+                "Order not found"
+            );
+        }
+
+
+
+        return res.status(200).json(
+
+            new ApiResponse(
+
+                200,
+
+                result.rows[0],
+
+                "Order status updated"
+            )
         );
-    }
-
-
-
-    return res.status(200).json(
-
-        new ApiResponse(
-
-            200,
-
-            result.rows[0],
-
-            "Order status updated"
-        )
-    );
-});
+    });
 
 const getAdminSingleOrder = asyncHandler(
-async (req, res) => {
+    async (req, res) => {
 
-    const { id } = req.params;
+        const { id } = req.params;
 
 
 
-    // ==============================
-    // GET ORDER
-    // ==============================
+        // ==============================
+        // GET ORDER
+        // ==============================
 
-    const order =
-    await pool.query(
+        const order =
+            await pool.query(
 
-        `
+                `
         SELECT
 
             orders.*,
@@ -830,29 +830,29 @@ async (req, res) => {
         WHERE orders.id = $1
         `,
 
-        [id]
-    );
+                [id]
+            );
 
 
 
-    if (order.rows.length === 0) {
+        if (order.rows.length === 0) {
 
-        throw new ApiError(
-            404,
-            "Order not found"
-        );
-    }
+            throw new ApiError(
+                404,
+                "Order not found"
+            );
+        }
 
 
 
-    // ==============================
-    // GET ITEMS
-    // ==============================
+        // ==============================
+        // GET ITEMS
+        // ==============================
 
-    const items =
-    await pool.query(
+        const items =
+            await pool.query(
 
-        `
+                `
         SELECT
 
             order_items.id,
@@ -870,27 +870,27 @@ async (req, res) => {
         WHERE order_items.order_id = $1
         `,
 
-        [id]
-    );
+                [id]
+            );
 
 
 
-    return res.status(200).json(
+        return res.status(200).json(
 
-        new ApiResponse(
+            new ApiResponse(
 
-            200,
+                200,
 
-            {
+                {
 
-                order: order.rows[0],
-                items: items.rows
-            },
+                    order: order.rows[0],
+                    items: items.rows
+                },
 
-            "Order fetched successfully"
-        )
-    );
-});
+                "Order fetched successfully"
+            )
+        );
+    });
 
 export {
 

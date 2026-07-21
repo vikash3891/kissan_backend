@@ -1,13 +1,17 @@
+import fs from "fs";
 import pool from "../db/index.js";
 
 import { ApiError }
-from "../utils/ApiError.js";
+    from "../utils/ApiError.js";
 
 import { ApiResponse }
-from "../utils/ApiResponse.js";
+    from "../utils/ApiResponse.js";
 
 import { asyncHandler }
-from "../utils/asyncHandler.js";
+    from "../utils/asyncHandler.js";
+
+import { uploadOnCloudinary }
+    from "../utils/cloudinary.js";
 
 
 // =====================================
@@ -15,34 +19,43 @@ from "../utils/asyncHandler.js";
 // =====================================
 
 const createBanner = asyncHandler(
-async (req, res) => {
+    async (req, res) => {
 
-    const {
+        const {
 
-        title,
-        image_url,
-        redirect_type,
-        redirect_id,
-        is_active
+            title,
+            image_url,
+            redirect_type,
+            redirect_id,
+            is_active
 
-    } = req.body;
+        } = req.body;
+
+        let imageUrl = image_url;
+        const imageLocalPath = req.file?.path;
+
+        if (imageLocalPath) {
+            const uploadedImage = await uploadOnCloudinary(imageLocalPath);
+            if (uploadedImage) {
+                imageUrl = uploadedImage.secure_url;
+                fs.unlinkSync(imageLocalPath);
+            }
+        }
+
+        if (!imageUrl) {
+
+            throw new ApiError(
+                400,
+                "Banner image required"
+            );
+        }
 
 
 
-    if (!image_url) {
+        const result =
+            await pool.query(
 
-        throw new ApiError(
-            400,
-            "Banner image required"
-        );
-    }
-
-
-
-    const result =
-    await pool.query(
-
-        `
+                `
         INSERT INTO banners
         (
 
@@ -59,30 +72,30 @@ async (req, res) => {
         RETURNING *
         `,
 
-        [
+                [
 
-            title,
-            image_url,
-            redirect_type,
-            redirect_id,
-            is_active ?? true
-        ]
-    );
+                    title,
+                    imageUrl,
+                    redirect_type,
+                    redirect_id,
+                    is_active ?? true
+                ]
+            );
 
 
 
-    return res.status(201).json(
+        return res.status(201).json(
 
-        new ApiResponse(
+            new ApiResponse(
 
-            201,
+                201,
 
-            result.rows[0],
+                result.rows[0],
 
-            "Banner created successfully"
-        )
-    );
-});
+                "Banner created successfully"
+            )
+        );
+    });
 
 
 
@@ -91,12 +104,12 @@ async (req, res) => {
 // =====================================
 
 const getBanners = asyncHandler(
-async (_, res) => {
+    async (_, res) => {
 
-    const result =
-    await pool.query(
+        const result =
+            await pool.query(
 
-        `
+                `
         SELECT *
 
         FROM banners
@@ -105,48 +118,48 @@ async (_, res) => {
 
         ORDER BY created_at DESC
         `
-    );
+            );
 
 
 
-    return res.status(200).json(
+        return res.status(200).json(
 
-        new ApiResponse(
+            new ApiResponse(
 
-            200,
+                200,
 
-            result.rows,
+                result.rows,
 
-            "Banners fetched successfully"
-        )
-    );
-});
+                "Banners fetched successfully"
+            )
+        );
+    });
 
 // =====================================
 // UPDATE BANNER
 // =====================================
 
 const updateBanner = asyncHandler(
-async (req, res) => {
+    async (req, res) => {
 
-    const { id } = req.params;
+        const { id } = req.params;
 
-    const {
+        const {
 
-        title,
-        image_url,
-        redirect_type,
-        redirect_id,
-        is_active
+            title,
+            image_url,
+            redirect_type,
+            redirect_id,
+            is_active
 
-    } = req.body;
+        } = req.body;
 
 
 
-    const result =
-    await pool.query(
+        const result =
+            await pool.query(
 
-        `
+                `
         UPDATE banners
 
         SET
@@ -162,41 +175,41 @@ async (req, res) => {
         RETURNING *
         `,
 
-        [
+                [
 
-            title,
-            image_url,
-            redirect_type,
-            redirect_id,
-            is_active,
-            id
-        ]
-    );
+                    title,
+                    image_url,
+                    redirect_type,
+                    redirect_id,
+                    is_active,
+                    id
+                ]
+            );
 
 
 
-    if (result.rows.length === 0) {
+        if (result.rows.length === 0) {
 
-        throw new ApiError(
-            404,
-            "Banner not found"
+            throw new ApiError(
+                404,
+                "Banner not found"
+            );
+        }
+
+
+
+        return res.status(200).json(
+
+            new ApiResponse(
+
+                200,
+
+                result.rows[0],
+
+                "Banner updated successfully"
+            )
         );
-    }
-
-
-
-    return res.status(200).json(
-
-        new ApiResponse(
-
-            200,
-
-            result.rows[0],
-
-            "Banner updated successfully"
-        )
-    );
-});
+    });
 
 
 // =====================================
@@ -204,16 +217,16 @@ async (req, res) => {
 // =====================================
 
 const deleteBanner = asyncHandler(
-async (req, res) => {
+    async (req, res) => {
 
-    const { id } = req.params;
+        const { id } = req.params;
 
 
 
-    const result =
-    await pool.query(
+        const result =
+            await pool.query(
 
-        `
+                `
         DELETE FROM banners
 
         WHERE id = $1
@@ -221,33 +234,33 @@ async (req, res) => {
         RETURNING *
         `,
 
-        [id]
-    );
+                [id]
+            );
 
 
 
-    if (result.rows.length === 0) {
+        if (result.rows.length === 0) {
 
-        throw new ApiError(
-            404,
-            "Banner not found"
+            throw new ApiError(
+                404,
+                "Banner not found"
+            );
+        }
+
+
+
+        return res.status(200).json(
+
+            new ApiResponse(
+
+                200,
+
+                result.rows[0],
+
+                "Banner deleted successfully"
+            )
         );
-    }
-
-
-
-    return res.status(200).json(
-
-        new ApiResponse(
-
-            200,
-
-            result.rows[0],
-
-            "Banner deleted successfully"
-        )
-    );
-});
+    });
 
 
 
