@@ -23,7 +23,7 @@ router.post(
     "/:productId",
     verifyJWT,
     // upload.any(),
-    upload.array("image",5),
+    upload.array("images",5),
     addReview
 );
 
@@ -44,7 +44,7 @@ router.put(
     "/:reviewId",
 
     verifyJWT,
-    upload.array("image",5),
+    upload.array("images",5),
     updateReview
 );
 
