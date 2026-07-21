@@ -289,7 +289,7 @@ async (req, res) => {
 
             productId,
 
-            rating,
+            rating ? Math.round(Number(rating)) : null,
 
             comment || "",
 
@@ -729,7 +729,7 @@ if (remove_images) {
 
         [
 
-            rating,
+            rating ? Math.round(Number(rating)) : null,
 
             comment,
 
