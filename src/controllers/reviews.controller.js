@@ -25,7 +25,7 @@ const formatReviewResponse = (review) => {
 
     const images =
         Array.isArray(review.review_images)
-            ? review.review_images.filter(Boolean)
+            ? review.review_images.filter(Boolean).map(img => typeof img === 'object' && img !== null ? (img.url || img.secure_url) : img).filter(Boolean)
             : [];
 
     return {
