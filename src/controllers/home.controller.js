@@ -44,7 +44,9 @@ async (_, res) => {
 
         FROM categories
 
-        ORDER BY created_at DESC
+        WHERE is_active = true
+
+        ORDER BY sort_order, created_at DESC
         `
     );
 
