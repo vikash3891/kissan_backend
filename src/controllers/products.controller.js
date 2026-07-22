@@ -189,8 +189,11 @@ const getAllProducts = asyncHandler(async (req, res) => {
     if (search) {
 
         query += `
-            AND LOWER(p.name)
-            LIKE LOWER($${index})
+            AND (
+                LOWER(p.name) LIKE LOWER($${index})
+                OR LOWER(p.description) LIKE LOWER($${index})
+                OR LOWER(p.brand) LIKE LOWER($${index})
+            )
         `;
 
         values.push(`%${search}%`);
