@@ -8,6 +8,8 @@
   "scripts": {
    "start": "node -r dotenv/config src/index.js",
   "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
+  "migrate:rbac": "node scripts/migrate_rbac.js",
+  "seed:rbac": "node scripts/seed_rbac.js",
   "test": "echo \"no test required\" && exit 0"
   },
   "keywords": [],

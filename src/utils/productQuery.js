@@ -12,6 +12,8 @@ SELECT
     p.brand,
     p.unit,
     p.is_available,
+    p.is_active,
+    p.is_archived,
     p.created_at,
 
     CASE

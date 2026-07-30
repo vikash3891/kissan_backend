@@ -8,9 +8,10 @@ from "../utils/ApiResponse.js";
 
 import { asyncHandler }
 from "../utils/asyncHandler.js";
-import { uploadOnCloudinary }
-from "../utils/cloudinary.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import fs from "fs";
+import AuditService from "../services/audit.service.js";
+import { STAFF_ROLES } from "../utils/roles.js";
 
 
 
@@ -132,43 +133,50 @@ const createCategory = asyncHandler(async (req, res) => {
 // =====================================
 
 const toggleCategoryStatus = asyncHandler(async (req, res) => {
-
     const { id } = req.params;
+    const { is_active, is_archived, reason } = req.body;
 
-    const { is_active } = req.body;
-
-    const result = await pool.query(
-        `
-        UPDATE categories
-
-        SET
-            is_active = $1
-
-        WHERE id = $2
-
-        RETURNING *
-        `,
-        [
-            is_active,
-            id
-        ]
-    );
-
-    if (result.rows.length === 0) {
-        throw new ApiError(
-            404,
-            "Category not found"
-        );
+    const existing = await pool.query(`SELECT * FROM categories WHERE id = $1`, [id]);
+    if (existing.rows.length === 0) {
+        throw new ApiError(404, "Category not found");
     }
 
-    return res.status(200).json(
-        new ApiResponse(
-            200,
-            result.rows[0],
-            "Category status updated successfully"
-        )
+    const updates = [];
+    const values = [];
+    let i = 1;
+
+    if (is_active !== undefined) {
+        updates.push(`is_active = $${i++}`);
+        values.push(is_active);
+    }
+    if (is_archived !== undefined) {
+        updates.push(`is_archived = $${i++}`);
+        values.push(is_archived);
+    }
+
+    if (updates.length === 0) {
+        throw new ApiError(400, "Provide is_active or is_archived to update");
+    }
+
+    values.push(id);
+    const result = await pool.query(
+        `UPDATE categories SET ${updates.join(', ')} WHERE id = $${i} RETURNING *`,
+        values
     );
 
+    await AuditService.logStatusChange({
+        entityType: 'category',
+        entityId: id,
+        action: 'status_update',
+        oldState: existing.rows[0],
+        newState: result.rows[0],
+        adminId: req.user?.id,
+        reason: reason
+    });
+
+    return res.status(200).json(
+        new ApiResponse(200, result.rows[0], "Category status updated successfully")
+    );
 });
 
 
@@ -366,54 +374,35 @@ const updateCategory = asyncHandler(async (req, res) => {
 
 
 // ===============================
-// DELETE CATEGORY
+// DELETE CATEGORY (Move to Trash)
 // ===============================
 
 const deleteCategory = asyncHandler(async (req, res) => {
-
     const { id } = req.params;
 
-    const result = await pool.query(
-
-        `
-        UPDATE categories
-
-        SET
-
-            is_active = FALSE
-
-        WHERE id = $1
-
-        RETURNING *
-        `,
-
-        [id]
-
-    );
-
-    if (result.rows.length === 0) {
-
-        throw new ApiError(
-            404,
-            "Category not found"
-        );
-
+    const existing = await pool.query(`SELECT * FROM categories WHERE id = $1`, [id]);
+    if (existing.rows.length === 0) {
+        throw new ApiError(404, "Category not found");
     }
 
-    return res.status(200).json(
-
-        new ApiResponse(
-
-            200,
-
-            result.rows[0],
-
-            "Category disabled successfully"
-
-        )
-
+    const result = await pool.query(
+        `UPDATE categories SET is_archived = TRUE WHERE id = $1 RETURNING *`,
+        [id]
     );
 
+    await AuditService.logStatusChange({
+        entityType: 'category',
+        entityId: id,
+        action: 'archived',
+        oldState: existing.rows[0],
+        newState: result.rows[0],
+        adminId: req.user?.id,
+        reason: "Moved to trash via delete button"
+    });
+
+    return res.status(200).json(
+        new ApiResponse(200, result.rows[0], "Category moved to trash successfully")
+    );
 });
 
 
@@ -458,7 +447,8 @@ async (req, res) => {
         LEFT JOIN categories c
         ON p.category_id = c.id
 
-        WHERE p.category_id = $1
+        WHERE p.category_id = $1 AND p.is_archived = FALSE AND c.is_archived = FALSE
+        ${req.user && STAFF_ROLES.includes(req.user.role) ? '' : 'AND p.is_active = TRUE AND c.is_active = TRUE'}
         `,
 
         [id]
@@ -532,7 +522,9 @@ const searchCategories = asyncHandler(async (req, res) => {
             image_url
         FROM categories
         WHERE
-            is_active = TRUE
+            is_archived = FALSE
+            AND
+            ${req.user && STAFF_ROLES.includes(req.user.role) ? '1=1' : 'is_active = TRUE'}
             AND
             LOWER(name) LIKE LOWER($1)
         ORDER BY name
@@ -557,86 +549,46 @@ const searchCategories = asyncHandler(async (req, res) => {
 // =====================================
 
 const getCategories = asyncHandler(async (req, res) => {
-
     let { page, limit } = req.query;
+    const isAdmin = req.user && STAFF_ROLES.includes(req.user.role);
 
-    // No pagination -> return all
+    const condition = isAdmin ? 'is_archived = FALSE' : 'is_active = TRUE AND is_archived = FALSE';
 
     if (!page && !limit) {
-
-        const result = await pool.query(
-            `
-            SELECT
-                id,
-                name,
-                description,
-                image_url
+        const result = await pool.query(`
+            SELECT id, name, description, image_url, is_active, is_archived, sort_order
             FROM categories
-            WHERE is_active = TRUE
+            WHERE ${condition}
             ORDER BY sort_order, name
-            `
-        );
-
-        return res.status(200).json(
-            new ApiResponse(
-                200,
-                result.rows,
-                "Categories fetched successfully"
-            )
-        );
-
+        `);
+        return res.status(200).json(new ApiResponse(200, result.rows, "Categories fetched successfully"));
     }
 
     page = Number(page) || 1;
     limit = Number(limit) || 10;
-
     const offset = (page - 1) * limit;
 
     const categories = await pool.query(
         `
-        SELECT
-            id,
-            name,
-            description,
-            image_url
+        SELECT id, name, description, image_url, is_active, is_archived, sort_order
         FROM categories
-        WHERE is_active = TRUE
-        ORDER BY sort_order,name
-        LIMIT $1
-        OFFSET $2
+        WHERE ${condition}
+        ORDER BY sort_order, name
+        LIMIT $1 OFFSET $2
         `,
         [limit, offset]
     );
 
-    const total = await pool.query(
-        `
-        SELECT COUNT(*)
-        FROM categories
-        WHERE is_active = TRUE
-        `
-    );
+    const total = await pool.query(`SELECT COUNT(*) FROM categories WHERE ${condition}`);
 
     return res.status(200).json(
-
-        new ApiResponse(
-
-            200,
-
-            {
-
-                currentPage: page,
-                totalPages: Math.ceil(total.rows[0].count / limit),
-                totalCategories: Number(total.rows[0].count),
-                categories: categories.rows
-
-            },
-
-            "Categories fetched successfully"
-
-        )
-
+        new ApiResponse(200, {
+            currentPage: page,
+            totalPages: Math.ceil(total.rows[0].count / limit),
+            totalCategories: Number(total.rows[0].count),
+            categories: categories.rows
+        }, "Categories fetched successfully")
     );
-
 });
 
 

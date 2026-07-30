@@ -9,6 +9,10 @@ from "../utils/ApiResponse.js";
 import { asyncHandler }
 from "../utils/asyncHandler.js";
 
+import { uploadOnCloudinary } 
+from "../utils/cloudinary.js";
+import fs from "fs";
+
 
 // =====================================
 // CREATE BANNER
@@ -17,7 +21,7 @@ from "../utils/asyncHandler.js";
 const createBanner = asyncHandler(
 async (req, res) => {
 
-    const {
+    let {
 
         title,
         image_url,
@@ -26,6 +30,16 @@ async (req, res) => {
         is_active
 
     } = req.body;
+
+    if (req.file) {
+        const uploadedImage = await uploadOnCloudinary(req.file.path);
+        if (uploadedImage) {
+            image_url = uploadedImage.secure_url;
+            if (fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+        }
+    }
 
 
 
@@ -131,7 +145,7 @@ async (req, res) => {
 
     const { id } = req.params;
 
-    const {
+    let {
 
         title,
         image_url,
@@ -140,6 +154,16 @@ async (req, res) => {
         is_active
 
     } = req.body;
+
+    if (req.file) {
+        const uploadedImage = await uploadOnCloudinary(req.file.path);
+        if (uploadedImage) {
+            image_url = uploadedImage.secure_url;
+            if (fs.existsSync(req.file.path)) {
+                fs.unlinkSync(req.file.path);
+            }
+        }
+    }
 
 
 
@@ -151,11 +175,11 @@ async (req, res) => {
 
         SET
 
-        title = $1,
-        image_url = $2,
-        redirect_type = $3,
-        redirect_id = $4,
-        is_active = $5
+        title = COALESCE($1, title),
+        image_url = COALESCE($2, image_url),
+        redirect_type = COALESCE($3, redirect_type),
+        redirect_id = COALESCE($4, redirect_id),
+        is_active = COALESCE($5, is_active)
 
         WHERE id = $6
 

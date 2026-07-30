@@ -43,9 +43,7 @@ async (_, res) => {
         SELECT *
 
         FROM categories
-
-        WHERE is_active = true
-
+        WHERE is_active = true AND is_archived = false
         ORDER BY sort_order, created_at DESC
         `
     );

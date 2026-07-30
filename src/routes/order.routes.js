@@ -20,15 +20,19 @@ from "../controllers/order.controller.js";
 
 import { verifyJWT }
 from "../middlewares/auth.middleware.js";
-import { verifyAdmin }
-from "../middlewares/admin.middleware.js";
+
+import { verifyPermission }
+from "../middlewares/role.middleware.js";
+
+import { PERMISSIONS }
+from "../utils/roles.js";
 
 const router = express.Router();
 
 
 
 // =====================================
-// PLACE ORDER
+// CUSTOMER — Place Order
 // =====================================
 
 router.post(
@@ -40,7 +44,7 @@ router.post(
 
 
 // =====================================
-// GET MY ORDERS
+// CUSTOMER — Get My Orders
 // =====================================
 
 router.get(
@@ -52,7 +56,7 @@ router.get(
 
 
 // =====================================
-// GET SINGLE ORDER
+// CUSTOMER — Get Single Order
 // =====================================
 
 router.get(
@@ -64,7 +68,7 @@ router.get(
 
 
 // =====================================
-// CANCEL ORDER
+// CUSTOMER — Cancel Order
 // =====================================
 
 router.patch(
@@ -76,7 +80,7 @@ router.patch(
 
 
 // =====================================
-// Buy now 
+// CUSTOMER — Buy Now
 // =====================================
 
 router.post(
@@ -86,7 +90,7 @@ router.post(
 );
 
 // =====================================
-// ADMIN - GET ALL ORDERS
+// ADMIN — Get All Orders
 // =====================================
 
 router.get(
@@ -94,7 +98,7 @@ router.get(
     "/admin/all",
 
     verifyJWT,
-    verifyAdmin,
+    verifyPermission(PERMISSIONS.ORDERS_VIEW),
 
     getAllOrders
 );
@@ -102,7 +106,7 @@ router.get(
 
 
 // =====================================
-// ADMIN - GET SINGLE ORDER
+// ADMIN — Get Single Order
 // =====================================
 
 router.get(
@@ -110,7 +114,7 @@ router.get(
     "/admin/:id",
 
     verifyJWT,
-    verifyAdmin,
+    verifyPermission(PERMISSIONS.ORDERS_VIEW),
 
     getAdminSingleOrder
 );
@@ -118,7 +122,7 @@ router.get(
 
 
 // =====================================
-// ADMIN - UPDATE STATUS
+// ADMIN — Update Order Status
 // =====================================
 
 router.patch(
@@ -126,7 +130,7 @@ router.patch(
     "/admin/status/:id",
 
     verifyJWT,
-    verifyAdmin,
+    verifyPermission(PERMISSIONS.ORDERS_UPDATE),
 
     updateOrderStatus
 );
