@@ -23,7 +23,14 @@ const getAllUsers = asyncHandler(async (req, res) => {
 
     const whereStr = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
-    const countQuery = `SELECT COUNT(*) FROM users u ${whereStr}`;
+    const countQuery = `
+        SELECT COUNT(*) FROM (
+            SELECT id, phone, role FROM users
+            UNION ALL
+            SELECT s.id, s.phone, r.slug AS role FROM staff_users s LEFT JOIN roles r ON s.role_id = r.id
+        ) u
+        ${whereStr}
+    `;
     const countResult = await pool.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].count);
 
@@ -32,10 +39,14 @@ const getAllUsers = asyncHandler(async (req, res) => {
             u.id, u.phone, u.role, u.created_at,
             COUNT(DISTINCT o.id) AS order_count,
             COALESCE(SUM(o.final_amount), 0) AS total_spent
-        FROM users u
+        FROM (
+            SELECT id, phone, role, created_at FROM users
+            UNION ALL
+            SELECT s.id, s.phone, r.slug AS role, s.created_at FROM staff_users s LEFT JOIN roles r ON s.role_id = r.id
+        ) u
         LEFT JOIN orders o ON u.id = o.user_id
         ${whereStr}
-        GROUP BY u.id
+        GROUP BY u.id, u.phone, u.role, u.created_at
         ORDER BY u.created_at DESC
         LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
     `;
