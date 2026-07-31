@@ -99,7 +99,8 @@ export const sendOtp = async (phone, req) => {
         throw new ApiError(429, "Too many OTP requests. Please try again later.");
     }
 
-    const otp = process.env.NODE_ENV === 'production' ? generateOtp() : "1234";
+    // Mocking OTP to 1234 as requested
+    const otp = "1234";
     const otpHash = hashOtp(otp);
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 

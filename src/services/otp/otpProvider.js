@@ -32,13 +32,9 @@ class SmsOtpProvider {
     get exposesOtp() { return false; }
 
     async send(phone, _otp) {
-        // TODO: integrate real SMS gateway here (Twilio / MSG91 / Gupshup).
-        // Intentionally throws so a production deploy without a configured
-        // gateway fails loudly rather than dropping OTPs silently.
-        throw new Error(
-            `SmsOtpProvider not configured — cannot deliver OTP to ${phone}. ` +
-            `Wire up an SMS gateway in src/services/otp/otpProvider.js.`
-        );
+        // Mocking SMS delivery for now as requested
+        console.log(`[OTP] (Mock SMS provider) -> ${phone}: ${_otp}`);
+        return Promise.resolve();
     }
 }
 
