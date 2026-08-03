@@ -27,7 +27,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
         SELECT COUNT(*) FROM (
             SELECT id, phone, role FROM users
             UNION ALL
-            SELECT s.id, s.phone, r.slug AS role FROM staff_users s LEFT JOIN roles r ON s.role_id = r.id
+            SELECT s.id, s.phone, LOWER(REPLACE(r.name, ' ', '_')) AS role FROM staff_users s LEFT JOIN roles r ON s.role_id = r.id
         ) u
         ${whereStr}
     `;
@@ -42,7 +42,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
         FROM (
             SELECT id, phone, role, created_at FROM users
             UNION ALL
-            SELECT s.id, s.phone, r.slug AS role, s.created_at FROM staff_users s LEFT JOIN roles r ON s.role_id = r.id
+            SELECT s.id, s.phone, LOWER(REPLACE(r.name, ' ', '_')) AS role, s.created_at FROM staff_users s LEFT JOIN roles r ON s.role_id = r.id
         ) u
         LEFT JOIN orders o ON u.id = o.user_id
         ${whereStr}
