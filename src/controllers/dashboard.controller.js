@@ -3,12 +3,43 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 const getDashboard = asyncHandler(async (req, res) => {
-    const userRole = req.user?.role || 'admin';
-    const userName = req.user?.name || 'Admin';
-    const lastLogin = req.user?.updated_at || new Date().toISOString();
+    let userRole = req.user?.role || 'admin';
+    let userName = req.user?.name || '';
+    let lastLogin = req.user?.updated_at || new Date().toISOString();
 
     const client = await pool.connect();
     try {
+        // Fetch personalized user info if name is not set
+        if (!userName || userName.toLowerCase() === 'admin') {
+            const userPhone = req.user?.phone || '';
+            const userId = req.user?.id || 0;
+            if (userPhone || userId) {
+                const staffCheck = await client.query(
+                    `SELECT su.name, su.last_login, r.name as role_name 
+                     FROM staff_users su 
+                     LEFT JOIN roles r ON r.id = su.role_id 
+                     WHERE (su.phone = $1 OR su.id::text = $2) AND su.is_archived = false 
+                     LIMIT 1`,
+                    [userPhone, userId.toString()]
+                );
+                if (staffCheck.rows.length > 0 && staffCheck.rows[0].name) {
+                    userName = staffCheck.rows[0].name;
+                    if (staffCheck.rows[0].role_name) userRole = staffCheck.rows[0].role_name;
+                    if (staffCheck.rows[0].last_login) lastLogin = staffCheck.rows[0].last_login;
+                } else {
+                    const uCheck = await client.query(
+                        `SELECT name, role, created_at FROM users WHERE id = $1 OR phone = $2 LIMIT 1`,
+                        [userId, userPhone]
+                    );
+                    if (uCheck.rows.length > 0 && uCheck.rows[0].name) {
+                        userName = uCheck.rows[0].name;
+                        if (uCheck.rows[0].role) userRole = uCheck.rows[0].role;
+                    }
+                }
+            }
+        }
+        if (!userName) userName = 'Admin';
+
         // --- System Health Checks ---
         const dbHealthResult = await client.query('SELECT 1 as healthy');
         const dbHealth = dbHealthResult.rowCount > 0 ? 'healthy' : 'degraded';

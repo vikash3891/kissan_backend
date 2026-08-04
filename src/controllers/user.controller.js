@@ -16,33 +16,54 @@ const getAllUsers = asyncHandler(async (req, res) => {
         queryParams.push(`%${search}%`);
     }
 
-    if (role) {
-        whereClauses.push(`u.role = $${queryParams.length + 1}`);
-        queryParams.push(role);
+    if (role && role.toLowerCase() !== 'all') {
+        const normalizedRole = role.toLowerCase().replace(/[\s-]+/g, '_');
+        whereClauses.push(`(
+            LOWER(COALESCE(r.name, u.role)) = $${queryParams.length + 1}
+            OR LOWER(REPLACE(COALESCE(r.name, u.role), ' ', '_')) = $${queryParams.length + 1}
+            OR ($${queryParams.length + 1} = 'super_admin' AND LOWER(COALESCE(r.name, u.role)) IN ('super admin', 'super_admin'))
+            OR ($${queryParams.length + 1} = 'admin' AND LOWER(COALESCE(r.name, u.role)) IN ('admin', 'administrator'))
+        )`);
+        queryParams.push(normalizedRole);
     }
 
     const whereStr = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
     const countQuery = `
         SELECT COUNT(*) FROM (
-            SELECT id, phone, role FROM users
-        ) u
-        ${whereStr}
+            SELECT u.id
+            FROM users u
+            LEFT JOIN staff_users su ON su.phone = u.phone AND su.is_archived = false
+            LEFT JOIN roles r ON r.id = su.role_id
+            ${whereStr}
+        ) counted
     `;
     const countResult = await pool.query(countQuery, queryParams);
-    const total = parseInt(countResult.rows[0].count);
+    const total = parseInt(countResult.rows[0]?.count || 0);
 
     const usersQuery = `
         SELECT 
-            u.id, u.phone, u.role, u.created_at,
+            u.id, 
+            u.phone, 
+            COALESCE(
+                CASE 
+                    WHEN LOWER(r.name) = 'super admin' THEN 'super_admin'
+                    WHEN LOWER(r.name) = 'admin' THEN 'admin'
+                    WHEN LOWER(r.name) = 'manager' THEN 'manager'
+                    ELSE LOWER(REPLACE(r.name, ' ', '_'))
+                END, 
+                u.role
+            ) AS role,
+            COALESCE(r.name, CASE WHEN u.role = 'super_admin' THEN 'Super Admin' WHEN u.role = 'admin' THEN 'Administrator' WHEN u.role = 'manager' THEN 'Manager' ELSE 'Customer' END) AS role_name,
+            u.created_at,
             COUNT(DISTINCT o.id) AS order_count,
             COALESCE(SUM(o.final_amount), 0) AS total_spent
-        FROM (
-            SELECT id, phone, role, created_at FROM users
-        ) u
+        FROM users u
+        LEFT JOIN staff_users su ON su.phone = u.phone AND su.is_archived = false
+        LEFT JOIN roles r ON r.id = su.role_id
         LEFT JOIN orders o ON u.id = o.user_id
         ${whereStr}
-        GROUP BY u.id, u.phone, u.role, u.created_at
+        GROUP BY u.id, u.phone, u.role, r.name, u.created_at
         ORDER BY u.created_at DESC
         LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
     `;
@@ -63,7 +84,26 @@ const getAllUsers = asyncHandler(async (req, res) => {
 const getSingleUser = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
-    const userQuery = `SELECT id, phone, role, created_at FROM users WHERE id = $1`;
+    const userQuery = `
+        SELECT 
+            u.id, 
+            u.phone, 
+            COALESCE(
+                CASE 
+                    WHEN LOWER(r.name) = 'super admin' THEN 'super_admin'
+                    WHEN LOWER(r.name) = 'admin' THEN 'admin'
+                    WHEN LOWER(r.name) = 'manager' THEN 'manager'
+                    ELSE LOWER(REPLACE(r.name, ' ', '_'))
+                END, 
+                u.role
+            ) AS role,
+            COALESCE(r.name, CASE WHEN u.role = 'super_admin' THEN 'Super Admin' WHEN u.role = 'admin' THEN 'Administrator' WHEN u.role = 'manager' THEN 'Manager' ELSE 'Customer' END) AS role_name,
+            u.created_at
+        FROM users u
+        LEFT JOIN staff_users su ON su.phone = u.phone AND su.is_archived = false
+        LEFT JOIN roles r ON r.id = su.role_id
+        WHERE u.id = $1
+    `;
     const userResult = await pool.query(userQuery, [id]);
 
     if (userResult.rowCount === 0) {
