@@ -378,10 +378,35 @@ async (req, res) => {
     );
 });
 
+const getAllUsers = asyncHandler(
+    async (req, res) => {
+        const result = await pool.query(
+            `
+            SELECT
+                id,
+                phone,
+                role,
+                created_at
+            FROM users
+            ORDER BY created_at DESC
+            `
+        );
+
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                result.rows,
+                "Users fetched successfully"
+            )
+        );
+    }
+);
+
 export {
     sendOtp,
     verifyOtp,
     refreshAccessToken,
     getCurrentUser,
-    logoutUser
+    logoutUser,
+    getAllUsers
 };
