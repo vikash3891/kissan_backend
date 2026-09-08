@@ -1,6 +1,11 @@
 import express from "express";
-import { verifyAdmin }
-from "../middlewares/admin.middleware.js";
+import { verifyJWT, optionalAuth }
+from "../middlewares/auth.middleware.js";
+import { verifyPermission }
+from "../middlewares/role.middleware.js";
+import { PERMISSIONS }
+from "../utils/roles.js";
+
 import {
 
     createProduct,
@@ -10,7 +15,7 @@ import {
     getSingleProduct,
 
     updateProduct,
-
+    toggleProductStatus,
     deleteProduct,
     updateStock,
     getInventory
@@ -18,8 +23,6 @@ import {
 }
 from "../controllers/products.controller.js";
 
-import { verifyJWT }
-from "../middlewares/auth.middleware.js";
 import { upload }
 from "../middlewares/multer.middleware.js";
 
@@ -27,20 +30,22 @@ const router = express.Router();
 
 
 
-// ADMIN
+// =====================================
+// ADMIN — Product CRUD
+// =====================================
+
 router.post(
     "/",
     verifyJWT,
-    verifyAdmin,
+    verifyPermission(PERMISSIONS.PRODUCT_CREATE),
     upload.single("image"),
-
     createProduct
 );
 
 router.put(
     "/:id",
     verifyJWT,
-    verifyAdmin,
+    verifyPermission(PERMISSIONS.PRODUCT_UPDATE),
     upload.single("image"),
     updateProduct
 );
@@ -48,38 +53,46 @@ router.put(
 router.delete(
     "/:id",
     verifyJWT,
-    verifyAdmin,
+    verifyPermission(PERMISSIONS.PRODUCT_DELETE),
     deleteProduct
 );
 
 router.patch(
     "/:id/stock",
     verifyJWT,
-    verifyAdmin,
+    verifyPermission(PERMISSIONS.INVENTORY_UPDATE),
     updateStock
-); 
-router.get(
+);
 
-    "/inventory",
-
+router.patch(
+    "/:id/status",
     verifyJWT,
+    verifyPermission(PERMISSIONS.PRODUCT_UPDATE),
+    toggleProductStatus
+);
 
-    verifyAdmin,
-
+router.get(
+    "/inventory",
+    verifyJWT,
+    verifyPermission(PERMISSIONS.INVENTORY_VIEW),
     getInventory
-
 );
 
 
 
-// CUSTOMER
+// =====================================
+// PUBLIC — Customer endpoints
+// =====================================
+
 router.get(
     "/",
+    optionalAuth,
     getAllProducts
 );
 
 router.get(
     "/:id",
+    optionalAuth,
     getSingleProduct
 );
 

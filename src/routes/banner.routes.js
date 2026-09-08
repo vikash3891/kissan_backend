@@ -9,31 +9,36 @@ import {
 } from "../controllers/banner.controller.js";
 
 import { verifyJWT }
-    from "../middlewares/auth.middleware.js";
+from "../middlewares/auth.middleware.js";
 
-import { verifyAdmin }
-    from "../middlewares/admin.middleware.js";
+import { verifyPermission }
+from "../middlewares/role.middleware.js";
 
-import { upload }
-    from "../middlewares/multer.middleware.js";
+import { PERMISSIONS }
+from "../utils/roles.js";
+
+import { upload } from "../middlewares/multer.middleware.js";
 
 const router = express.Router();
 
 
 
+// =====================================
+// ADMIN — Banner CRUD
+// =====================================
+
 router.post(
     "/",
     verifyJWT,
-    verifyAdmin,
+    verifyPermission(PERMISSIONS.BANNER_MANAGE),
     upload.single("image"),
     createBanner
 )
 
-
 router.put(
     "/:id",
     verifyJWT,
-    verifyAdmin,
+    verifyPermission(PERMISSIONS.BANNER_MANAGE),
     upload.single("image"),
     updateBanner
 )
@@ -41,12 +46,12 @@ router.put(
 router.delete(
     "/:id",
     verifyJWT,
-    verifyAdmin,
+    verifyPermission(PERMISSIONS.BANNER_MANAGE),
     deleteBanner
 )
 
 // =====================================
-// PUBLIC ROUTE
+// PUBLIC — Customer endpoint
 // =====================================
 
 router.get(

@@ -51,6 +51,8 @@ import { asyncHandler }
 import { uploadOnCloudinary }
     from "../utils/cloudinary.js";
 import { PRODUCT_SELECT } from "../utils/productQuery.js";
+import AuditService from "../services/audit.service.js";
+import { STAFF_ROLES } from "../utils/roles.js";
 
 
 // ===============================
@@ -209,9 +211,12 @@ const getAllProducts = asyncHandler(async (req, res) => {
 
     const offset = (page - 1) * limit;
 
+    const isAdmin = req.user && STAFF_ROLES.includes(req.user.role);
+    const condition = isAdmin ? 'p.is_archived = FALSE' : 'p.is_active = TRUE AND p.is_archived = FALSE AND c.is_active = TRUE AND c.is_archived = FALSE';
+
     let query = `
         ${PRODUCT_SELECT}
-        WHERE 1=1
+        WHERE ${condition}
     `;
 
     const values = [];
@@ -224,8 +229,11 @@ const getAllProducts = asyncHandler(async (req, res) => {
     if (search) {
 
         query += `
-            AND LOWER(p.name)
-            LIKE LOWER($${index})
+            AND (
+                LOWER(p.name) LIKE LOWER($${index})
+                OR LOWER(p.description) LIKE LOWER($${index})
+                OR LOWER(p.brand) LIKE LOWER($${index})
+            )
         `;
 
         values.push(`%${search}%`);
@@ -409,16 +417,15 @@ const getSingleProduct = asyncHandler(async (req, res) => {
 
     const { id } = req.params;
 
-    const result = await pool.query(
+    const isAdmin = req.user && STAFF_ROLES.includes(req.user.role);
+    const condition = isAdmin ? 'p.is_archived = FALSE' : 'p.is_active = TRUE AND p.is_archived = FALSE AND c.is_active = TRUE AND c.is_archived = FALSE';
 
+    const result = await pool.query(
         `
         ${PRODUCT_SELECT}
-
-        WHERE p.id = $1
+        WHERE p.id = $1 AND ${condition}
         `,
-
         [id]
-
     );
 
     if (result.rows.length === 0) {
@@ -634,54 +641,88 @@ const updateProduct = asyncHandler(async (req, res) => {
 
 
 // ===============================
-// DELETE PRODUCT
+// TOGGLE PRODUCT STATUS
+// ===============================
+
+const toggleProductStatus = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { is_active, is_archived, reason } = req.body;
+
+    const existing = await pool.query(`SELECT * FROM products WHERE id = $1`, [id]);
+    if (existing.rows.length === 0) {
+        throw new ApiError(404, "Product not found");
+    }
+
+    const updates = [];
+    const values = [];
+    let i = 1;
+
+    if (is_active !== undefined) {
+        updates.push(`is_active = $${i++}`);
+        values.push(is_active);
+    }
+    if (is_archived !== undefined) {
+        updates.push(`is_archived = $${i++}`);
+        values.push(is_archived);
+    }
+
+    if (updates.length === 0) {
+        throw new ApiError(400, "Provide is_active or is_archived to update");
+    }
+
+    values.push(id);
+    const result = await pool.query(
+        `UPDATE products SET ${updates.join(', ')} WHERE id = $${i} RETURNING *`,
+        values
+    );
+
+    await AuditService.logStatusChange({
+        entityType: 'product',
+        entityId: id,
+        action: 'status_update',
+        oldState: existing.rows[0],
+        newState: result.rows[0],
+        adminId: req.user?.id,
+        reason: reason
+    });
+
+    const product = await pool.query(`${PRODUCT_SELECT} WHERE p.id = $1`, [id]);
+
+    return res.status(200).json(
+        new ApiResponse(200, product.rows[0], "Product status updated successfully")
+    );
+});
+
+// ===============================
+// DELETE PRODUCT (Move to Trash)
 // ===============================
 
 const deleteProduct = asyncHandler(async (req, res) => {
-
     const { id } = req.params;
 
-    const product = await pool.query(
-
-        `
-        ${PRODUCT_SELECT}
-
-        WHERE p.id = $1
-        `,
-
-        [id]
-    );
-
-    if (product.rows.length === 0) {
-
-        throw new ApiError(
-            404,
-            "Product not found"
-        );
+    const existing = await pool.query(`SELECT * FROM products WHERE id = $1`, [id]);
+    if (existing.rows.length === 0) {
+        throw new ApiError(404, "Product not found");
     }
 
-    await pool.query(
-
-        `
-        DELETE FROM products
-        WHERE id = $1
-        `,
-
+    const result = await pool.query(
+        `UPDATE products SET is_archived = TRUE WHERE id = $1 RETURNING *`,
         [id]
     );
 
+    await AuditService.logStatusChange({
+        entityType: 'product',
+        entityId: id,
+        action: 'archived',
+        oldState: existing.rows[0],
+        newState: result.rows[0],
+        adminId: req.user?.id,
+        reason: "Moved to trash via delete button"
+    });
+
     return res.status(200).json(
-
-        new ApiResponse(
-
-            200,
-
-            product.rows[0],
-
-            "Product deleted successfully"
-        )
+        new ApiResponse(200, result.rows[0], "Product moved to trash successfully")
     );
-
 });
 
 const updateStock = asyncHandler(async (req, res) => {
@@ -775,7 +816,7 @@ const getInventory = asyncHandler(async (req, res) => {
 
         `
         ${PRODUCT_SELECT}
-
+        WHERE p.is_archived = FALSE
         ORDER BY p.stock ASC
         `
     );
@@ -808,6 +849,7 @@ export {
     updateProduct,
 
     deleteProduct,
+    toggleProductStatus,
     updateStock,
     getInventory,
 

@@ -10,16 +10,25 @@ import {
 
     deleteCategory,
 
-    getProductsByCategory
+    getProductsByCategory,
+    getSingleCategory,
+    searchCategories,
+    toggleCategoryStatus,
+    getCategoryStats,
+    reorderCategories
 
 }
 from "../controllers/category.controller.js";
 
-import { verifyJWT }
+import { verifyJWT, optionalAuth }
 from "../middlewares/auth.middleware.js";
 
-import { verifyAdmin }
-from "../middlewares/admin.middleware.js";
+import { verifyPermission }
+from "../middlewares/role.middleware.js";
+
+import { PERMISSIONS }
+from "../utils/roles.js";
+
 import { upload }
 from "../middlewares/multer.middleware.js";
 
@@ -27,11 +36,14 @@ const router = express.Router();
 
 
 
-// ADMIN
+// =====================================
+// ADMIN — Category CRUD
+// =====================================
+
 router.post(
     "/",
     verifyJWT,
-    verifyAdmin,
+    verifyPermission(PERMISSIONS.CATEGORY_CREATE),
     upload.single("image"),
     createCategory
 );
@@ -39,7 +51,7 @@ router.post(
 router.put(
     "/:id",
     verifyJWT,
-    verifyAdmin,
+    verifyPermission(PERMISSIONS.CATEGORY_UPDATE),
     upload.single("image"),
     updateCategory
 );
@@ -47,20 +59,58 @@ router.put(
 router.delete(
     "/:id",
     verifyJWT,
-    verifyAdmin,
+    verifyPermission(PERMISSIONS.CATEGORY_DELETE),
     deleteCategory
+);
+
+router.patch(
+    "/:id/status",
+    verifyJWT,
+    verifyPermission(PERMISSIONS.CATEGORY_UPDATE),
+    toggleCategoryStatus
+);
+
+router.get(
+    "/admin/stats",
+    verifyJWT,
+    verifyPermission(PERMISSIONS.CATEGORY_READ),
+    getCategoryStats
+);
+
+router.patch(
+    "/order",
+    verifyJWT,
+    verifyPermission(PERMISSIONS.CATEGORY_UPDATE),
+    reorderCategories
 );
 
 
 
-// CUSTOMER
+// =====================================
+// PUBLIC — Customer endpoints
+// =====================================
+
 router.get(
     "/",
+    optionalAuth,
     getCategories
 );
 
 router.get(
+    "/search",
+    optionalAuth,
+    searchCategories
+);
+
+router.get(
+    "/:id",
+    optionalAuth,
+    getSingleCategory
+);
+
+router.get(
     "/:id/products",
+    optionalAuth,
     getProductsByCategory
 );
 

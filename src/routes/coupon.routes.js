@@ -1,44 +1,77 @@
 import express from "express";
 
 import {
-
     createCoupon,
-    applyCoupon
-
+    applyCoupon,
+    getAllCoupons,
+    updateCoupon,
+    deleteCoupon,
+    toggleCoupon
 }
 from "../controllers/coupons.controller.js";
 
 import { verifyJWT }
 from "../middlewares/auth.middleware.js";
 
-import { verifyAdmin }
-from "../middlewares/admin.middleware.js";
+import { verifyPermission }
+from "../middlewares/role.middleware.js";
+
+import { PERMISSIONS }
+from "../utils/roles.js";
 
 const router = express.Router();
 
 
 
+// =====================================
+// ADMIN — Coupon Management
+// =====================================
+
 router.post(
-
     "/",
-
     verifyJWT,
-    verifyAdmin,
-
+    verifyPermission(PERMISSIONS.COUPONS_MANAGE),
     createCoupon
 );
 
-
-
-router.post(
-
-    "/apply",
-
+router.get(
+    "/",
     verifyJWT,
+    verifyPermission(PERMISSIONS.COUPONS_MANAGE),
+    getAllCoupons
+);
 
-    applyCoupon
+router.put(
+    "/:id",
+    verifyJWT,
+    verifyPermission(PERMISSIONS.COUPONS_MANAGE),
+    updateCoupon
+);
+
+router.delete(
+    "/:id",
+    verifyJWT,
+    verifyPermission(PERMISSIONS.COUPONS_MANAGE),
+    deleteCoupon
+);
+
+router.patch(
+    "/:id/toggle",
+    verifyJWT,
+    verifyPermission(PERMISSIONS.COUPONS_MANAGE),
+    toggleCoupon
 );
 
 
+
+// =====================================
+// CUSTOMER — Apply Coupon
+// =====================================
+
+router.post(
+    "/apply",
+    verifyJWT,
+    applyCoupon
+);
 
 export default router;

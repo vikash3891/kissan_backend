@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 
-// Load .env FIRST
+
 dotenv.config();
 
 import app from "./app.js";
